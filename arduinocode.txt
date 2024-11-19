@@ -1,0 +1,84 @@
+#include <Servo.h>
+
+// Pins for ultrasonic sensor
+const int trigPin = 9;
+const int echoPin = 10;
+
+// Motor control pins
+const int motorLeftPin = 3;
+const int motorRightPin = 5;
+
+// Additional sensor for rear detection
+const int rearTrigPin = 11;
+const int rearEchoPin = 12;
+
+// Function to read distance from ultrasonic sensor
+int readDistance(int trig, int echo) {
+    digitalWrite(trig, LOW);
+    delayMicroseconds(2);
+    digitalWrite(trig, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(trig, LOW);
+    long duration = pulseIn(echo, HIGH);
+    int distance = duration * 0.034 / 2;
+    return distance;
+}
+
+// Navigation logic with expanded conditions
+void navigate(int distanceFront, int distanceRear) {
+    String action = "";
+
+    // Include the expanded decision logic
+    if (distanceFront <= 5) { action = "stop"; }
+    else if (distanceFront <= 10) { action = "right"; }
+    else if (distanceFront <= 15) { action = "left"; }
+    else if (distanceFront <= 20) { action = "forward"; }
+    else if (distanceFront <= 30 && distanceRear > 10) { action = "reverse"; }
+    else { action = "forward"; }
+
+    // Act based on decision
+    if (action == "forward") {
+        analogWrite(motorLeftPin, 200);
+        analogWrite(motorRightPin, 200);
+        Serial.println("Action: Move Forward");
+    } else if (action == "left") {
+        analogWrite(motorLeftPin, 100);
+        analogWrite(motorRightPin, 200);
+        Serial.println("Action: Turn Left");
+    } else if (action == "right") {
+        analogWrite(motorLeftPin, 200);
+        analogWrite(motorRightPin, 100);
+        Serial.println("Action: Turn Right");
+    } else if (action == "reverse") {
+        analogWrite(motorLeftPin, -100);
+        analogWrite(motorRightPin, -100);
+        Serial.println("Action: Reverse");
+    } else if (action == "stop") {
+        analogWrite(motorLeftPin, 0);
+        analogWrite(motorRightPin, 0);
+        Serial.println("Action: Stop");
+    }
+}
+
+void setup() {
+    pinMode(trigPin, OUTPUT);
+    pinMode(echoPin, INPUT);
+    pinMode(rearTrigPin, OUTPUT);
+    pinMode(rearEchoPin, INPUT);
+    pinMode(motorLeftPin, OUTPUT);
+    pinMode(motorRightPin, OUTPUT);
+    Serial.begin(9600);
+}
+
+void loop() {
+    int distanceFront = readDistance(trigPin, echoPin);
+    int distanceRear = readDistance(rearTrigPin, rearEchoPin);
+    Serial.print("Front Distance: ");
+    Serial.print(distanceFront);
+    Serial.print(" cm, Rear Distance: ");
+    Serial.print(distanceRear);
+    Serial.println(" cm");
+
+    navigate(distanceFront, distanceRear);
+    delay(300);
+}
